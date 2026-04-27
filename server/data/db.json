@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "id": "0d3c90da-d97e-4418-82f2-e49cadd96c6b",
+      "name": "Anubhav",
+      "phone": "9123231863",
+      "email": "anubhavkumar779@gmail.com",
+      "address": "greater noida",
+      "role": "Farmer",
+      "farmSize": "",
+      "cropFocus": "",
+      "passwordHash": "dbe658dea253700e4569613146cf5035:1976770b04264c913f34688a044b528c827a119e6874b31f86a94ae4c84237c2f145315c2ee90872440e2fc1f789cb24e324c55ac09df2a3efb29d3ca59633ce",
+      "createdAt": "2026-04-06T07:42:44.269Z"
+    }
+  ],
+  "sessions": [
+    {
+      "token": "b812e6c6f6adbef08b1ea5f1ea39ac92ae4482bdc2557e3f80bac1c1b4c69f45",
+      "userId": "0d3c90da-d97e-4418-82f2-e49cadd96c6b",
+      "createdAt": "2026-04-06T07:47:32.398Z"
+    },
+    {
+      "token": "ce5726bbbcc419dd80f4e4fe17e1060352776651ed14e61c768e3c98bb88fcef",
+      "userId": "0d3c90da-d97e-4418-82f2-e49cadd96c6b",
+      "createdAt": "2026-04-06T07:56:55.988Z"
+    }
+  ],
+  "listings": []
+}

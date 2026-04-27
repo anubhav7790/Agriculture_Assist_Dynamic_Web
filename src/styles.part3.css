@@ -1,0 +1,190 @@
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.section-header h2,
+.panel h3,
+.feature-card h3,
+.crop-card h3,
+.auth-card h1 {
+  margin: 0.2rem 0 0.4rem;
+}
+
+.section-copy,
+.feature-card p,
+.panel p,
+.auth-card p,
+.footer p,
+.stat-card p,
+.stat-card small,
+.crop-card p {
+  color: var(--muted);
+}
+
+.feature-grid,
+.stats-grid,
+.dashboard-grid,
+.soil-card-grid,
+.equipment-grid,
+.scheme-grid,
+.crop-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1.4rem;
+}
+
+.feature-card {
+  padding: 1.4rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover,
+.crop-card:hover {
+  transform: translateY(-4px);
+}
+
+.feature-icon,
+.stat-icon,
+.equipment-icon {
+  font-size: 1.7rem;
+}
+
+.auth-page {
+  min-height: calc(100vh - 190px);
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  width: min(720px, 100%);
+  padding: 2rem;
+}
+
+.large-auth-card {
+  width: min(900px, 100%);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.form-field span {
+  font-size: 0.92rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  padding: 0.95rem 1.25rem;
+  border-radius: 16px;
+  font-weight: 600;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.btn:hover,
+.theme-toggle:hover,
+.favorite-btn:hover,
+.role-chip:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #4caf50);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.fit-btn {
+  width: fit-content;
+}
+
+.text-link,
+.favorite-btn {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-switch {
+  margin-top: 1rem;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  margin: 1rem;
+  padding: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.sidebar-brand {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.nav-item {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.nav-item.active {
+  background: var(--primary);
+  color: white;
+}
+
+.sidebar-logout {
+  margin-top: auto;
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.navbar {
+  margin: 1rem 1rem 0 0;
+  padding: 1rem 1.2rem;
+}
