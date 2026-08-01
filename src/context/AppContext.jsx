@@ -1,16 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
-  chemicals,
-  equipmentItems,
   initialListings,
   initialSchemes,
   initialSoilReports,
   userProfile
 } from "../data/mockData";
+import { safetyChemicals as chemicals, safetyEquipment as equipmentItems } from "../data/safetyData";
 import { languageText } from "../data/i18n";
 import {
   createMarketplaceListing,
   analyzeSoilReport,
+  analyzeSoilImageReport,
   deleteMarketplaceListing,
   fetchCurrentUser,
   fetchMarketplaceListings,
@@ -23,6 +23,24 @@ import {
 
 const AppContext = createContext(null);
 const authStorageKey = "kv-auth-token";
+const profileStorageKey = "kv-profile-cache";
+
+function readCachedProfile() {
+  try {
+    const raw = localStorage.getItem(profileStorageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeCachedProfile(profile) {
+  try {
+    localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+  } catch (_error) {
+    // Ignore storage write issues and continue with in-memory state.
+  }
+}
 
 export function AppProvider({ children }) {
   const [theme, setTheme] = useState(localStorage.getItem("kv-theme") || "light");
@@ -130,8 +148,13 @@ export function AppProvider({ children }) {
         if (!active) {
           return;
         }
-        setProfile((current) => ({ ...current, ...user }));
-        setRole(user.role || "Farmer");
+        const cachedProfile = readCachedProfile();
+        const nextUser =
+          cachedProfile && (cachedProfile.id === user.id || cachedProfile.email === user.email)
+            ? { ...cachedProfile, ...user }
+            : user;
+        setProfile((current) => ({ ...current, ...nextUser }));
+        setRole(nextUser.role || "Farmer");
         setIsAuthenticated(true);
       })
       .catch(() => {
@@ -166,6 +189,7 @@ export function AppProvider({ children }) {
     localStorage.setItem(authStorageKey, token);
     setAuthToken(token);
     setProfile((current) => ({ ...current, ...user }));
+    writeCachedProfile(user);
     setRole(user.role || "Farmer");
     setIsAuthenticated(true);
     showToast(message || "Welcome back to Krishi Vikas");
@@ -176,6 +200,7 @@ export function AppProvider({ children }) {
     localStorage.setItem(authStorageKey, token);
     setAuthToken(token);
     setProfile((current) => ({ ...current, ...user }));
+    writeCachedProfile(user);
     setRole(user.role || payload.role || "Farmer");
     setIsAuthenticated(true);
     showToast(message || "Registration successful");
@@ -190,6 +215,7 @@ export function AppProvider({ children }) {
       }
     }
     localStorage.removeItem(authStorageKey);
+    localStorage.removeItem(profileStorageKey);
     setAuthToken("");
     setIsAuthenticated(false);
     setProfile(userProfile);
@@ -201,9 +227,25 @@ export function AppProvider({ children }) {
       throw new Error("Please login again to analyze the soil report.");
     }
 
-    const { report: analyzedReport, message } = await analyzeSoilReport(authToken, report);
-    setCurrentSoilReport(analyzedReport);
-    showToast(message || "Soil analysis generated");
+    try {
+      const response = await analyzeSoilReport(authToken, report);
+      const analyzedReport = response.report;
+      setCurrentSoilReport(analyzedReport);
+      showToast(
+        response.message || "Soil analysis generated",
+        analyzedReport.provider === "local-fallback" ? "info" : "success"
+      );
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const analyzeSoilImage = async (payload) => {
+    if (!authToken) {
+      throw new Error("Please login again to analyze the soil image.");
+    }
+
+    return analyzeSoilImageReport(authToken, payload);
   };
 
   const addListing = async (listing) => {
@@ -223,7 +265,7 @@ export function AppProvider({ children }) {
 
     const { message } = await deleteMarketplaceListing(authToken, listingId);
     setListings((current) => current.filter((item) => item.id !== listingId));
-    showToast(message || "Listing removed");
+    showToast(message || "Listing marked as sold and removed");
   };
 
   const toggleFavorite = (listingId) => {
@@ -240,6 +282,7 @@ export function AppProvider({ children }) {
     }
     const { user, message } = await updateCurrentUser(authToken, updates);
     setProfile((current) => ({ ...current, ...user }));
+    writeCachedProfile(user);
     setRole(user.role || role);
     showToast(message || "Profile updated");
   };
@@ -278,7 +321,8 @@ export function AppProvider({ children }) {
       toggleTheme: () => setTheme((current) => (current === "light" ? "dark" : "light")),
       updateProfile,
       addListing,
-      addSoilReport
+      addSoilReport,
+      analyzeSoilImage
     }),
     [
       favorites,

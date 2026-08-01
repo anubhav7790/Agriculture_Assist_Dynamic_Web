@@ -16,9 +16,11 @@ CREATE TABLE IF NOT EXISTS listings (
   crop_name VARCHAR(255) NOT NULL,
   price NUMERIC(10, 2) NOT NULL,
   quantity VARCHAR(100) NOT NULL,
+  quantity_kg DECIMAL(12, 2) NOT NULL DEFAULT 30,
+  district VARCHAR(120) NOT NULL DEFAULT '',
   location VARCHAR(255) NOT NULL,
   phone VARCHAR(30) NOT NULL,
-  image TEXT NOT NULL,
+  image MEDIUMTEXT NOT NULL,
   description TEXT NOT NULL,
   tags JSON NOT NULL,
   seller_type VARCHAR(30) NOT NULL DEFAULT 'Farmer',
@@ -43,5 +45,6 @@ CREATE TABLE IF NOT EXISTS soil_reports (
 
 CREATE INDEX idx_listings_owner_id ON listings(owner_id);
 CREATE INDEX idx_listings_created_at ON listings(created_at);
+CREATE INDEX idx_listings_district ON listings(district);
 CREATE INDEX idx_soil_reports_user_id ON soil_reports(user_id);
 CREATE INDEX idx_soil_reports_created_at ON soil_reports(created_at);

@@ -1,34 +1,27 @@
-export default function FilterPanel({ filters, onChange }) {
+export default function FilterPanel({ filters, onChange, onClear }) {
   return (
-    <div className="filter-panel">
+    <div className="filter-panel marketplace-search-panel">
       <label className="form-field">
-        <span>Location</span>
+        <span>Search Crop</span>
         <input
-          name="location"
-          value={filters.location}
+          name="crop"
+          value={filters.crop}
           onChange={onChange}
-          placeholder="State or city"
+          placeholder="Tomato, wheat, onion"
         />
       </label>
       <label className="form-field">
-        <span>Max Price</span>
+        <span>Search District / Location</span>
         <input
-          name="price"
-          type="number"
-          value={filters.price}
+          name="region"
+          value={filters.region}
           onChange={onChange}
-          placeholder="Rs / kg"
+          placeholder="District, village, or mandi"
         />
       </label>
-      <label className="form-field">
-        <span>Min Quantity</span>
-        <input
-          name="quantity"
-          value={filters.quantity}
-          onChange={onChange}
-          placeholder="eg. 200 kg"
-        />
-      </label>
+      <button type="button" className="btn btn-secondary marketplace-clear-btn" onClick={onClear}>
+        Clear
+      </button>
     </div>
   );
 }

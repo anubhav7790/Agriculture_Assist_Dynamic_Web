@@ -5,7 +5,8 @@ export default function FormInput({
   onChange,
   type = "text",
   placeholder,
-  required = false
+  required = false,
+  ...props
 }) {
   return (
     <label className="form-field">
@@ -17,6 +18,7 @@ export default function FormInput({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        {...props}
       />
     </label>
   );

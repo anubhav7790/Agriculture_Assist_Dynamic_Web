@@ -8,7 +8,15 @@ export default function ListingDetailsPage() {
   const { deleteListing, listings, profile, showToast } = useAppContext();
   const listing = listings.find((item) => item.id === listingId);
 
-  const handleDelete = async () => {
+  const handleMarkSold = async () => {
+    const confirmed = window.confirm(
+      "Are you sure this crop is sold? This will permanently remove the listing from the marketplace database."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await deleteListing(listingId);
       window.history.back();
@@ -37,7 +45,10 @@ export default function ListingDetailsPage() {
         <div className="panel">
           <p className="price">Rs. {listing.price}/kg</p>
           <p>
-            <strong>Quantity:</strong> {listing.quantity}
+            <strong>Quantity:</strong> {listing.quantityKg ? `${listing.quantityKg} kg` : listing.quantity}
+          </p>
+          <p>
+            <strong>District:</strong> {listing.district || "Not specified"}
           </p>
           <p>
             <strong>Location:</strong> {listing.location}
@@ -63,9 +74,9 @@ export default function ListingDetailsPage() {
             <Link className="btn btn-secondary" to="/marketplace">
               Back to Listings
             </Link>
-            {listing.ownerName === profile.name ? (
-              <Button variant="secondary" onClick={handleDelete}>
-                Delete Listing
+            {listing.ownerId === profile.id || listing.ownerName === profile.name ? (
+              <Button variant="secondary" onClick={handleMarkSold}>
+                Mark as Sold
               </Button>
             ) : null}
           </div>

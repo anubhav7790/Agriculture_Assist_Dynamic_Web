@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import SectionHeader from "../components/SectionHeader";
@@ -7,24 +7,43 @@ import FilterPanel from "../components/FilterPanel";
 import Loader from "../components/Loader";
 
 export default function MarketplacePage() {
-  const { favorites, globalSearch, listings, listingsLoading, text, toggleFavorite } = useAppContext();
-  const [filters, setFilters] = useState({ location: "", price: "", quantity: "" });
+  const { favorites, globalSearch, listings, listingsLoading, profile, text, toggleFavorite } = useAppContext();
+  const profileDistrict = useMemo(() => {
+    const parts = (profile.address || "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    return profile.district || parts.at(-2) || parts.at(0) || "";
+  }, [profile.address, profile.district]);
+  const [filters, setFilters] = useState({ crop: "", region: profileDistrict });
+
+  useEffect(() => {
+    setFilters((current) => (current.region ? current : { ...current, region: profileDistrict }));
+  }, [profileDistrict]);
+
+  const userListings = useMemo(
+    () =>
+      listings.filter((item) =>
+        profile.id ? item.ownerId === profile.id : item.ownerName === profile.name
+      ),
+    [listings, profile.id, profile.name]
+  );
 
   const filteredListings = useMemo(
     () =>
       listings.filter((item) => {
-        const matchesSearch = `${item.cropName} ${item.location}`
+        const searchText = `${item.cropName} ${item.district || ""} ${item.location}`
           .toLowerCase()
           .includes(globalSearch.toLowerCase());
-        const matchesLocation = filters.location
-          ? item.location.toLowerCase().includes(filters.location.toLowerCase())
+        const matchesCrop = filters.crop
+          ? item.cropName.toLowerCase().includes(filters.crop.toLowerCase())
           : true;
-        const matchesPrice = filters.price ? Number(item.price) <= Number(filters.price) : true;
-        const numericQuantity = parseInt(item.quantity, 10);
-        const filterQuantity = parseInt(filters.quantity, 10);
-        const matchesQuantity = filters.quantity ? numericQuantity >= filterQuantity : true;
+        const listingRegion = `${item.district || ""} ${item.location || ""}`.toLowerCase();
+        const matchesRegion = filters.region
+          ? listingRegion.includes(filters.region.toLowerCase())
+          : true;
 
-        return matchesSearch && matchesLocation && matchesPrice && matchesQuantity;
+        return searchText && matchesCrop && matchesRegion;
       }),
     [filters, globalSearch, listings]
   );
@@ -34,10 +53,10 @@ export default function MarketplacePage() {
       <SectionHeader
         eyebrow="Marketplace"
         title={text.marketplaceTitle}
-        description="Farmers can publish listings and buyers can connect directly using phone or WhatsApp."
+        description="Browse local crop listings by district or nearby market, publish available crops, and connect directly with sellers."
         action={
           <Link className="btn btn-primary" to="/marketplace/add">
-            Add Listing
+            Publish Listing
           </Link>
         }
       />
@@ -47,21 +66,70 @@ export default function MarketplacePage() {
         onChange={(event) =>
           setFilters((current) => ({ ...current, [event.target.name]: event.target.value }))
         }
+        onClear={() => setFilters({ crop: "", region: "" })}
       />
 
       {listingsLoading ? (
         <Loader message="Loading crop listings..." />
       ) : (
-        <div className="crop-grid">
-          {filteredListings.map((listing) => (
-            <CropCard
-              key={listing.id}
-              listing={listing}
-              isFavorite={favorites.includes(listing.id)}
-              onFavorite={toggleFavorite}
-            />
-          ))}
-        </div>
+        <>
+          <section className="marketplace-section">
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">Your Published Listings</p>
+                <h2>Manage crops you published</h2>
+              </div>
+              <Link className="btn btn-secondary" to="/marketplace/add">
+                Publish New
+              </Link>
+            </div>
+            {userListings.length === 0 ? (
+              <div className="panel empty-state">
+                <h3>No published listing yet</h3>
+                <p>Publish a crop with clear district, quantity, price, and contact details.</p>
+              </div>
+            ) : (
+              <div className="crop-grid">
+                {userListings.map((listing) => (
+                  <CropCard
+                    key={listing.id}
+                    listing={listing}
+                    isFavorite={favorites.includes(listing.id)}
+                    onFavorite={toggleFavorite}
+                    ownerLabel="Your listing"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="marketplace-section">
+            <div className="section-heading-row">
+              <div>
+                <p className="section-kicker">Regional Marketplace</p>
+                <h2>{filters.region ? `${filters.region} crop listings` : "All crop listings"}</h2>
+              </div>
+              <span className="marketplace-count">{filteredListings.length} active</span>
+            </div>
+            {filteredListings.length === 0 ? (
+              <div className="panel empty-state">
+                <h3>No matching listings found</h3>
+                <p>Try another crop or district, or publish the first listing for this area.</p>
+              </div>
+            ) : (
+              <div className="crop-grid">
+                {filteredListings.map((listing) => (
+                  <CropCard
+                    key={listing.id}
+                    listing={listing}
+                    isFavorite={favorites.includes(listing.id)}
+                    onFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
       )}
     </div>
   );

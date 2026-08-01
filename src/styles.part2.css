@@ -6,119 +6,141 @@
 .role-toggle {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
+/* Premium Hero Section */
 .hero-section {
   max-width: 1200px;
-  margin: 2rem auto 0;
+  margin: 3rem auto 0;
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 1.5rem;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2rem;
   align-items: center;
-  padding: 1.25rem;
-  border-radius: 36px;
+  padding: 0;
+  border-radius: 24px;
+  position: relative;
+  background: transparent;
+}
+
+.hero-copy {
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.hero-copy h1 {
+  font-size: clamp(2.8rem, 5vw, 4.2rem);
+  line-height: 1.1;
+  margin: 0.5rem 0 1.5rem;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hero-copy p {
+  color: var(--muted);
+  font-size: 1.15rem;
+  max-width: 620px;
+  margin-bottom: 2rem;
+}
+
+.hero-panel {
+  padding: 2rem;
+  min-height: 480px;
+  display: grid;
+  gap: 1.5rem;
+  background: url("https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1000&q=80") center/cover;
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(115deg, rgba(12, 38, 18, 0.52) 8%, rgba(31, 77, 35, 0.24) 42%, rgba(244, 178, 74, 0.12) 100%),
-    rgba(255, 255, 255, 0.08);
-  box-shadow: 0 28px 70px rgba(21, 49, 26, 0.2);
 }
 
-.hero-section::before {
-  content: "";
+.hero-panel::before {
+  content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 78% 22%, rgba(255, 209, 102, 0.28), transparent 18%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 34%);
-  pointer-events: none;
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.8), rgba(0, 0, 0, 0.4));
 }
 
-.hero-section > * {
+.hero-panel > * {
   position: relative;
   z-index: 1;
 }
 
-.hero-copy,
-.hero-panel,
+/* Elevating general cards */
 .panel,
 .auth-card,
 .feature-card,
 .stat-card,
 .crop-card,
-.footer,
 .sidebar,
 .navbar {
-  background: var(--surface);
-  backdrop-filter: blur(14px);
+  background: var(--surface-strong);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  border-radius: 28px;
+  box-shadow: var(--shadow-sm);
+  border-radius: 20px;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-.hero-copy {
-  padding: 2.2rem;
-  background: linear-gradient(180deg, rgba(250, 255, 247, 0.88), rgba(242, 249, 238, 0.8));
-}
-
-.hero-copy h1 {
-  font-size: clamp(2.4rem, 4vw, 4.5rem);
-  line-height: 1.05;
-  margin: 0.4rem 0 1rem;
-}
-
-.hero-copy p {
-  color: var(--muted);
-  max-width: 620px;
-}
-
-.hero-panel {
-  padding: 1.5rem;
-  min-height: 420px;
-  display: grid;
-  gap: 1rem;
-  background:
-    linear-gradient(180deg, rgba(20, 62, 28, 0.36), rgba(46, 125, 50, 0.14)),
-    var(--surface);
+.footer {
+  background: transparent;
+  border-top: 1px solid var(--border);
 }
 
 .floating-card {
-  padding: 1.4rem;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
   align-self: start;
+  backdrop-filter: blur(10px);
 }
 
 .accent-card {
   align-self: end;
+  background: rgba(18, 33, 23, 0.9);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .hero-metrics {
   margin-top: 1.5rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
 .hero-metrics div {
-  padding: 1rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(46, 125, 50, 0.08);
+  padding: 1.2rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .feature-section {
   max-width: 1200px;
-  margin: 3rem auto;
+  margin: 5rem auto;
+  padding: 0 1rem;
+}
+
+.feature-section .eyebrow,
+.feature-section .section-header h2,
+.feature-section .section-copy {
+  color: var(--accent);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: end;
-  gap: 1rem;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }

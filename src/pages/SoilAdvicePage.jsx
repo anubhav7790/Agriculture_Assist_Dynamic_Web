@@ -47,7 +47,16 @@ export default function SoilAdvicePage() {
             <span>pH</span>
             <strong>{latest.ph}</strong>
           </div>
+          <div className="stat-card">
+            <span>Analysis Source</span>
+            <strong>{latest.provider?.startsWith("gemini") ? "Google Gemini" : "Smart Fallback"}</strong>
+          </div>
         </div>
+        {latest.provider === "local-fallback" ? (
+          <p className="provider-note">
+            Gemini is temporarily busy, so the app is showing a structured fallback analysis right now.
+          </p>
+        ) : null}
       </section>
 
       {english ? (

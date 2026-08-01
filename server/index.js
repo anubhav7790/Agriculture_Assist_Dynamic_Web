@@ -18,7 +18,7 @@ app.use(
     credentials: true
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 function mapUser(row) {
   return {
@@ -40,6 +40,8 @@ function mapListing(row) {
     cropName: row.crop_name,
     price: Number(row.price),
     quantity: row.quantity,
+    quantityKg: Number(row.quantity_kg || parseFloat(row.quantity) || 0),
+    district: row.district || "",
     location: row.location,
     phone: row.phone,
     image: row.image,
@@ -50,6 +52,52 @@ function mapListing(row) {
     ownerName: row.owner_name,
     createdAt: row.created_at
   };
+}
+
+function normalizeDistrict(value = "") {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+async function ensureMarketplaceSchema() {
+  try {
+    await query("ALTER TABLE listings MODIFY image MEDIUMTEXT NOT NULL");
+  } catch (error) {
+    if (error.code !== "ER_NO_SUCH_TABLE") {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE listings ADD COLUMN quantity_kg DECIMAL(12, 2) NOT NULL DEFAULT 30 AFTER quantity");
+  } catch (error) {
+    if (error.code !== "ER_DUP_FIELDNAME") {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE listings ADD COLUMN district VARCHAR(120) NOT NULL DEFAULT '' AFTER quantity_kg");
+  } catch (error) {
+    if (error.code !== "ER_DUP_FIELDNAME") {
+      throw error;
+    }
+  }
+
+  try {
+    await query("CREATE INDEX idx_listings_district ON listings(district)");
+  } catch (error) {
+    if (error.code !== "ER_DUP_KEYNAME") {
+      throw error;
+    }
+  }
+}
+
+function formatStartupError(error) {
+  if (error.code === "ECONNREFUSED") {
+    return "MySQL connection refused. Start MySQL and verify MYSQL_HOST and MYSQL_PORT in .env.";
+  }
+
+  return error.sqlMessage || error.message || error.code || String(error);
 }
 
 function buildSoilRecommendations(report) {
@@ -603,13 +651,18 @@ app.post("/api/auth/logout", requireAuth, async (_req, res) => {
   res.json({ message: "Logged out successfully." });
 });
 
-app.get("/api/listings", async (_req, res) => {
+app.get("/api/listings", async (req, res) => {
   try {
+    const district = normalizeDistrict(req.query.district || "");
+    const params = district ? [district] : [];
     const result = await query(
       `SELECT listings.*, users.name AS owner_name
        FROM listings
        JOIN users ON users.id = listings.owner_id
+       ${district ? "WHERE LOWER(listings.district) = LOWER(?)" : ""}
        ORDER BY listings.created_at DESC`
+      ,
+      params
     );
     res.json({ listings: result.map(mapListing) });
   } catch (_error) {
@@ -639,22 +692,40 @@ app.get("/api/listings/:listingId", async (req, res) => {
 
 app.post("/api/listings", requireAuth, async (req, res) => {
   try {
-    const { cropName, price, quantity, location, phone, image, description } = req.body;
+    const { cropName, price, quantity, district, location, phone, image, description } = req.body;
 
-    if (!cropName || !price || !quantity || !location || !phone) {
+    if (!cropName || !price || !quantity || !district || !location || !phone) {
       return res.status(400).json({ message: "Please fill all required listing fields." });
+    }
+
+    const quantityKg = Number(quantity);
+    const pricePerKg = Number(price);
+    const normalizedDistrict = normalizeDistrict(district);
+
+    if (!Number.isFinite(quantityKg) || quantityKg < 30) {
+      return res.status(400).json({ message: "Crop quantity must be at least 30 kg." });
+    }
+
+    if (!Number.isFinite(pricePerKg) || pricePerKg <= 0) {
+      return res.status(400).json({ message: "Price must be greater than zero." });
+    }
+
+    if (!normalizedDistrict) {
+      return res.status(400).json({ message: "District is required for local marketplace visibility." });
     }
 
     const listingId = crypto.randomUUID();
     await query(
       `INSERT INTO listings (
-          id, crop_name, price, quantity, location, phone, image, description, tags, seller_type, owner_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          id, crop_name, price, quantity, quantity_kg, district, location, phone, image, description, tags, seller_type, owner_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         listingId,
         cropName.trim(),
-        Number(price),
-        quantity.trim(),
+        pricePerKg,
+        `${quantityKg} kg`,
+        quantityKg,
+        normalizedDistrict,
         location.trim(),
         phone.trim(),
         image?.trim() ||
@@ -697,7 +768,7 @@ app.delete("/api/listings/:listingId", requireAuth, async (req, res) => {
       return res.status(404).json({ message: "Listing not found or access denied." });
     }
 
-    res.json({ message: "Listing removed successfully." });
+    res.json({ message: "Listing marked as sold and removed from the marketplace." });
   } catch (_error) {
     res.status(500).json({ message: "Unable to delete listing right now." });
   }
@@ -807,6 +878,13 @@ app.post("/api/soil-analysis", requireAuth, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Krishi Vikas MySQL server listening on http://localhost:${PORT}`);
-});
+ensureMarketplaceSchema()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Krishi Vikas MySQL server listening on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Unable to prepare marketplace schema:", formatStartupError(error));
+    process.exit(1);
+  });

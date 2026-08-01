@@ -4,18 +4,43 @@ export const fakeDelay = (value, timeout = 350) =>
   });
 
 async function request(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    },
-    ...options
-  });
+  let response;
+  const method = options.method || "GET";
 
-  const data = await response.json().catch(() => ({}));
+  try {
+    const { headers, ...restOptions } = options;
+    response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(headers || {})
+      },
+      ...restOptions
+    });
+  } catch (_error) {
+    throw new Error("Network issue while contacting server. Please refresh and try again.");
+  }
+
+  const rawText = await response.text();
+  let data = {};
+
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch (_error) {
+    data = {};
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong.");
+    const textSnippet = rawText ? rawText.slice(0, 220) : "";
+    const debugInfo = data.debug ? ` Debug: ${JSON.stringify(data.debug)}` : "";
+    const baseMessage =
+      data.message ||
+      (textSnippet
+        ? `Request failed (${response.status}). ${textSnippet}`
+        : `Request failed with status ${response.status}.`);
+    throw new Error(
+      `${baseMessage}${debugInfo}`
+    );
   }
 
   return data;
@@ -40,7 +65,7 @@ export function loginUser(payload) {
 }
 
 export function fetchCurrentUser(token) {
-  return request("/api/auth/me", {
+  return request(`/api/auth/me?ts=${Date.now()}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -66,10 +91,11 @@ export function logoutUser(token) {
   });
 }
 
-export function fetchMarketplaceListings() {
+export function fetchMarketplaceListings(district = "") {
   // API CALL
   // fetch("YOUR_API_KEY/get-listings")
-  return request("/api/listings");
+  const query = district ? `?district=${encodeURIComponent(district)}` : "";
+  return request(`/api/listings${query}`);
 }
 
 export function createMarketplaceListing(token, payload) {
@@ -117,6 +143,16 @@ export function createSoilReport(token, payload) {
 
 export function analyzeSoilReport(token, payload) {
   return request("/api/soil-analysis", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function analyzeSoilImageReport(token, payload) {
+  return request("/api/soil-image-analysis", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`

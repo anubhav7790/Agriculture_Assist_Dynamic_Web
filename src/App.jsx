@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAppContext } from "./context/AppContext";
 import Navbar from "./components/Navbar";
@@ -10,9 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import SoilUploadPage from "./pages/SoilUploadPage";
-import SoilCardPage from "./pages/SoilCardPage";
 import SoilAdvicePage from "./pages/SoilAdvicePage";
-import SoilHistoryPage from "./pages/SoilHistoryPage";
 import SafetyGuidelinesPage from "./pages/SafetyGuidelinesPage";
 import ProtectiveEquipmentPage from "./pages/ProtectiveEquipmentPage";
 import VoiceInstructionsPage from "./pages/VoiceInstructionsPage";
@@ -24,18 +23,18 @@ import ProfilePage from "./pages/ProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
 
 function AppShell() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="app-main">
-        <Navbar />
+        <Navbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="content-shell">
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/soil/upload" element={<SoilUploadPage />} />
-            <Route path="/soil/card" element={<SoilCardPage />} />
             <Route path="/soil/recommendations" element={<SoilAdvicePage />} />
-            <Route path="/soil/history" element={<SoilHistoryPage />} />
             <Route path="/safety/guidelines" element={<SafetyGuidelinesPage />} />
             <Route path="/safety/equipment" element={<ProtectiveEquipmentPage />} />
             <Route path="/safety/voice" element={<VoiceInstructionsPage />} />

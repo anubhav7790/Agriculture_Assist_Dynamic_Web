@@ -3,7 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import SearchBar from "./SearchBar";
 import ThemeToggle from "./ThemeToggle";
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const { globalSearch, setGlobalSearch, language, setLanguage, role } = useAppContext();
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,13 +17,17 @@ export default function Navbar() {
 
   return (
     <header className="navbar">
-      <Link to="/" className="brand">
-        <span className="brand-mark">🌾</span>
-        <div>
-          <strong>Krishi Vikas</strong>
-          <small>{role} Mode</small>
-        </div>
-      </Link>
+      <div className="navbar-left">
+        <button className="hamburger-btn" onClick={onMenuClick} aria-label="Open menu">
+          ☰
+        </button>
+        <Link to="/" className="brand">
+          <span className="brand-mark">🌾</span>
+          <div>
+            <strong>Krishi Vikas</strong>
+          </div>
+        </Link>
+      </div>
       <div className="navbar-actions">
         <SearchBar
           value={globalSearch}

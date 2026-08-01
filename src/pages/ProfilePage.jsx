@@ -5,12 +5,27 @@ import FormInput from "../components/FormInput";
 import Button from "../components/Button";
 
 export default function ProfilePage() {
-  const { profile, role, setRole, updateProfile } = useAppContext();
+  const { profile, role, setRole, showToast, updateProfile } = useAppContext();
   const [formData, setFormData] = useState(profile);
   const [saving, setSaving] = useState(false);
+  const [farmSizeValue, setFarmSizeValue] = useState("");
+  const [farmSizeUnit, setFarmSizeUnit] = useState("Acres");
 
   useEffect(() => {
     setFormData(profile);
+    if (profile.farmSize) {
+      const match = String(profile.farmSize).match(/^([\d.]+)\s*(.*)$/);
+      if (match) {
+        setFarmSizeValue(match[1]);
+        setFarmSizeUnit(match[2] || "Acres");
+      } else {
+        setFarmSizeValue(profile.farmSize);
+        setFarmSizeUnit("Acres");
+      }
+    } else {
+      setFarmSizeValue("");
+      setFarmSizeUnit("Acres");
+    }
   }, [profile]);
 
   const handleChange = (event) => {
@@ -18,11 +33,32 @@ export default function ProfilePage() {
     setFormData((current) => ({ ...current, [name]: value }));
   };
 
+  const handleFarmSizeValueChange = (event) => {
+    const val = event.target.value;
+    setFarmSizeValue(val);
+    setFormData((current) => ({
+      ...current,
+      farmSize: val ? `${val} ${farmSizeUnit}` : ""
+    }));
+  };
+
+  const handleFarmSizeUnitChange = (event) => {
+    const unit = event.target.value;
+    setFarmSizeUnit(unit);
+    setFormData((current) => ({
+      ...current,
+      farmSize: farmSizeValue ? `${farmSizeValue} ${unit}` : ""
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
       setSaving(true);
       await updateProfile({ ...formData, role });
+      showToast("Profile saved successfully");
+    } catch (error) {
+      showToast(error.message || "Unable to save profile right now.", "error");
     } finally {
       setSaving(false);
     }
@@ -42,7 +78,31 @@ export default function ProfilePage() {
             <FormInput label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
             <FormInput label="Email" name="email" value={formData.email} onChange={handleChange} />
             <FormInput label="Address" name="address" value={formData.address} onChange={handleChange} />
-            <FormInput label="Farm Size" name="farmSize" value={formData.farmSize} onChange={handleChange} />
+            <div className="form-field">
+              <span>Farm Size</span>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  type="number"
+                  step="any"
+                  name="farmSizeValue"
+                  value={farmSizeValue}
+                  onChange={handleFarmSizeValueChange}
+                  placeholder="e.g. 5"
+                  style={{ flex: 1 }}
+                />
+                <select
+                  name="farmSizeUnit"
+                  value={farmSizeUnit}
+                  onChange={handleFarmSizeUnitChange}
+                  style={{ width: "130px" }}
+                >
+                  <option value="Acres">Acres</option>
+                  <option value="Hectares">Hectares</option>
+                  <option value="Bigha">Bigha</option>
+                  <option value="Kanal">Kanal</option>
+                </select>
+              </div>
+            </div>
             <FormInput label="Crop Focus" name="cropFocus" value={formData.cropFocus} onChange={handleChange} />
           </div>
           <Button type="submit" className="fit-btn">

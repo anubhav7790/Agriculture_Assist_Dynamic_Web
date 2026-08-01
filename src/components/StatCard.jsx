@@ -1,12 +1,15 @@
-export default function StatCard({ icon, label, value, detail }) {
+import { Link } from "react-router-dom";
+
+export default function StatCard({ icon, label, value, detail, to }) {
+  const Component = to ? Link : "article";
   return (
-    <article className="stat-card">
+    <Component className="stat-card" to={to} style={to ? { textDecoration: "none", color: "inherit" } : undefined}>
       <div className="stat-icon">{icon}</div>
       <div>
         <p>{label}</p>
         <h3>{value}</h3>
         <small>{detail}</small>
       </div>
-    </article>
+    </Component>
   );
 }

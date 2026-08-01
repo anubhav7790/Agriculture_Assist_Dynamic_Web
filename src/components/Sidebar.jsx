@@ -10,37 +10,43 @@ const navItems = [
   { label: "Profile", path: "/profile", icon: "👤" }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { logout } = useAppContext();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
+    onClose();
     navigate("/");
   };
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand">
-        <span>🌿</span>
-        <div>
-          <strong>Krishi Vikas</strong>
-          <small>Farmer Support Platform</small>
+    <>
+      <div className={`sidebar-backdrop ${isOpen ? "show" : ""}`} onClick={onClose} />
+      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <span>🌿</span>
+          <div>
+            <strong>Krishi Vikas</strong>
+          </div>
+          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
+            ✕
+          </button>
         </div>
-      </div>
 
-      <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink key={item.path} to={item.path} className="nav-item">
-            <span>{item.icon}</span>
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink key={item.path} to={item.path} className="nav-item" onClick={onClose}>
+              <span>{item.icon}</span>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-      <button className="btn btn-secondary sidebar-logout" onClick={handleLogout}>
-        Logout
-      </button>
-    </aside>
+        <button className="btn btn-secondary sidebar-logout" onClick={handleLogout}>
+          Logout
+        </button>
+      </aside>
+    </>
   );
 }
