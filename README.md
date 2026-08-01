@@ -1,9 +1,8 @@
 # Agriculture_Assist_Dynamic_Web
 
-# 🚧 Krishi Vikas (Under Development)
+#  Krishi Vikas 
 
-> ⚠️ This project is currently under active development.
-![status](https://img.shields.io/badge/status-under%20development-yellow)
+
 
 ## 📌 About
 KishanSahayak is an Integrated Agriculture Support System designed to assist farmers in improving agricultural productivity and decision-making.
@@ -29,12 +28,10 @@ The main objectives of the system are:
 - HTML, CSS, JS , React , Node JS
 - SQL DATABASE
 
-## 📷 Preview
-<img width="1919" height="951" alt="Screenshot 2026-04-02 181123" src="https://github.com/user-attachments/assets/d8258179-e0b0-4107-b6f0-a6d70772018d" />
+## 📷 Login Dashboard 
+
 
 
 ## 📅 Status
-🟡 Work in Progress . 
+First Initial Version Completed .  
 
-## 🤝 Contributing
-Currently not open for contributions.
