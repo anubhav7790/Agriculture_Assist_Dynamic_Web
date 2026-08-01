@@ -1,1 +1,15 @@
 README.md 
+.env 
+.env.*
+
+#keeping file 
+!.env.example
+
+#Dependencies
+node_modules/
+
+#Build output 
+dist/
+
+#Log file
+*.log 
