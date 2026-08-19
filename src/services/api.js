@@ -2,6 +2,7 @@ export const fakeDelay = (value, timeout = 350) =>
   new Promise((resolve) => {
     setTimeout(() => resolve(value), timeout);
   });
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 async function request(url, options = {}) {
   let response;
@@ -9,7 +10,7 @@ async function request(url, options = {}) {
 
   try {
     const { headers, ...restOptions } = options;
-    response = await fetch(url, {
+    response = await fetch(`${API_BASE_URL}${url}`, {
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
