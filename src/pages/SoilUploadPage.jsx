@@ -1,8 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useAppContext } from "../context/AppContext";
-
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const MODEL = "gemini-2.5-flash";
+import { analyzeSoilImageReport } from "../services/api";
 
 const NUTRIENT_CONFIG = {
   Low: { label: "Deficient", labelHindi: "कमी", bg: "rgba(239, 68, 68, 0.08)", color: "#EF4444", bar: "#EF4444" },
@@ -673,7 +671,7 @@ function Results({ result, onReset, lang, copy, preview }) {
 }
 
 export default function SoilUploadPage() {
-  const { language } = useAppContext();
+  const { language, authToken } = useAppContext();
   const lang = language === "hi" ? "hi" : "en";
   const copy = pageCopy[lang];
 
@@ -682,9 +680,6 @@ export default function SoilUploadPage() {
   const [preview, setPreview] = useState(null);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [error, setError] = useState("");
-
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-  const model = import.meta.env.VITE_GEMINI_MODEL || MODEL;
 
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -701,50 +696,20 @@ export default function SoilUploadPage() {
     setError("");
 
     try {
-      if (!apiKey) {
-        throw new Error("VITE_GEMINI_API_KEY is missing in your .env file.");
-      }
-
       const base64 = await toBase64(file);
       setLoadingMsg(copy.loadingAnalyzing);
 
-      const response = await fetch(`${API_URL}/${model}:generateContent`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: file.type,
-                    data: base64
-                  }
-                },
-                { text: PROMPT }
-              ]
-            }
-          ],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
+      const responseData = await analyzeSoilImageReport(authToken, {
+        mimeType: file.type || "image/jpeg",
+        data: base64
       });
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        throw new Error(`API error: ${response.status} ${responseText}`);
+      if (responseData && responseData.result) {
+        setResult(responseData.result);
+        setStatus("done");
+      } else {
+        throw new Error(responseData?.message || "Failed to analyze soil image.");
       }
-
-      const data = await response.json();
-      const raw = data?.candidates?.[0]?.content?.parts?.map((item) => item.text || "").join("") || "";
-      const clean = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setResult(parsed);
-      setStatus("done");
     } catch (analysisError) {
       console.error(analysisError);
       setError(analysisError.message || "Analysis failed. Please try again.");

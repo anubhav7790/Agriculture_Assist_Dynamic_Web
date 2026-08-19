@@ -1,16 +1,18 @@
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
 export const fakeDelay = (value, timeout = 350) =>
   new Promise((resolve) => {
     setTimeout(() => resolve(value), timeout);
   });
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 async function request(url, options = {}) {
   let response;
   const method = options.method || "GET";
+  const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
   try {
     const { headers, ...restOptions } = options;
-    response = await fetch(`${API_BASE_URL}${url}`, {
+    response = await fetch(fullUrl, {
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
@@ -153,11 +155,13 @@ export function analyzeSoilReport(token, payload) {
 }
 
 export function analyzeSoilImageReport(token, payload) {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return request("/api/soil-image-analysis", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify(payload)
   });
 }

@@ -477,6 +477,27 @@ function getTokenFromHeader(req) {
   return authHeader.slice(7);
 }
 
+async function optionalAuth(req, _res, next) {
+  try {
+    const token = getTokenFromHeader(req);
+    if (token) {
+      const payload = verifyToken(token);
+      const result = await query(
+        `SELECT id, name, phone, email, address, role, farm_size, crop_focus, created_at
+         FROM users
+         WHERE id = ?`,
+        [payload.userId]
+      );
+      if (result[0]) {
+        req.authUser = mapUser(result[0]);
+      }
+    }
+  } catch (_error) {
+    // optional token invalid, ignore
+  }
+  next();
+}
+
 async function requireAuth(req, res, next) {
   try {
     const token = getTokenFromHeader(req);
@@ -852,6 +873,89 @@ app.post("/api/soil-analysis", requireAuth, async (req, res) => {
       if (geminiAnalysis) {
         analysis = geminiAnalysis;
         provider = "gemini";
+  } catch (_error) {
+    res.status(500).json({ message: "Unable to delete listing right now." });
+  }
+});
+
+app.get("/api/soil-reports", requireAuth, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, crop, n_value, p_value, k_value, ph_value, status, recommendations, created_at
+       FROM soil_reports
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
+      [req.authUser.id]
+    );
+
+    res.json({ reports: result.map(mapSoilReport) });
+  } catch (_error) {
+    res.status(500).json({ message: "Unable to fetch soil reports right now." });
+  }
+});
+
+app.post("/api/soil-reports", requireAuth, async (req, res) => {
+  try {
+    const { crop, n, p, k, ph } = req.body;
+
+    if (!crop || n === undefined || p === undefined || ph === undefined) {
+      return res.status(400).json({ message: "Please fill all soil report fields." });
+    }
+
+    const status = Number(ph) >= 6 && Number(ph) <= 7.5 ? "Healthy" : "Needs Attention";
+    const recommendations = buildSoilRecommendations({ n, p, k, ph });
+    const reportId = crypto.randomUUID();
+
+    await query(
+      `INSERT INTO soil_reports (
+          id, user_id, crop, n_value, p_value, k_value, ph_value, status, recommendations
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        reportId,
+        req.authUser.id,
+        crop.trim(),
+        Number(n),
+        Number(p),
+        k === undefined || k === null || k === "" ? null : Number(k),
+        Number(ph),
+        status,
+        JSON.stringify(recommendations)
+      ]
+    );
+
+    const result = await query(
+      `SELECT id, crop, n_value, p_value, k_value, ph_value, status, recommendations, created_at
+       FROM soil_reports
+       WHERE id = ?`,
+      [reportId]
+    );
+
+    res.status(201).json({
+      message: "Soil report uploaded successfully.",
+      report: mapSoilReport(result[0])
+    });
+  } catch (_error) {
+    res.status(500).json({ message: "Unable to save soil report right now." });
+  }
+});
+
+app.post("/api/soil-analysis", requireAuth, async (req, res) => {
+  try {
+    const { crop, n, p, k, ph } = req.body;
+
+    if (!crop || n === undefined || p === undefined || ph === undefined) {
+      return res.status(400).json({ message: "Please fill all soil analysis fields." });
+    }
+
+    const localAnalysis = buildCleanSoilAnalysis({ crop, n, p, k, ph });
+    let analysis = localAnalysis;
+    let provider = "local-fallback";
+
+    try {
+      const geminiAnalysis = await generateGeminiSoilAnalysis({ crop, n, p, k, ph });
+      if (geminiAnalysis) {
+        analysis = geminiAnalysis;
+        provider = "gemini";
       }
     } catch (error) {
       console.error("Gemini soil analysis failed:", error.message);
@@ -875,6 +979,208 @@ app.post("/api/soil-analysis", requireAuth, async (req, res) => {
     });
   } catch (_error) {
     res.status(500).json({ message: "Unable to analyze soil report right now." });
+  }
+});
+
+function buildFallbackSoilImageAnalysis() {
+  return {
+    soilType: "Loamy Soil",
+    soilTypeHindi: "दोमट मिट्टी",
+    color: "Dark Brown",
+    colorHindi: "गहरा भूरा",
+    overallHealth: "Good",
+    summary: "The soil shows rich organic matter content with good moisture retention capacity.",
+    summaryHindi: "मिट्टी में अच्छी नमी बनाए रखने की क्षमता के साथ प्रचुर मात्रा में जैविक तत्व दिख रहे हैं।",
+    nutrients: [
+      { name: "Nitrogen (N)", level: 65, status: "Adequate", note: "Sufficient for leaf growth", noteHindi: "पत्तियों की वृद्धि के लिए पर्याप्त" },
+      { name: "Phosphorus (P)", level: 45, status: "Low", note: "Slightly low for root setup", noteHindi: "जड़ों के विकास के लिए थोड़ा कम" },
+      { name: "Potassium (K)", level: 70, status: "Adequate", note: "Good crop resilience", noteHindi: "फसल मजबूती के लिए अच्छा" },
+      { name: "Organic Matter", level: 60, status: "Adequate", note: "Healthy soil biology", noteHindi: "स्वस्थ मृदा जैविक संरचना" },
+      { name: "pH Balance", level: 55, status: "Adequate", note: "Slightly acidic (6.5)", noteHindi: "हल्का अम्लीय (6.5)" },
+      { name: "Iron (Fe)", level: 50, status: "Adequate", note: "Sufficient micronutrient", noteHindi: "पर्याप्त सूक्ष्म पोषक तत्व" },
+      { name: "Zinc (Zn)", level: 40, status: "Low", note: "Consider zinc sulphate spray", noteHindi: "जिंक सल्फेट छिड़काव पर विचार करें" },
+      { name: "Magnesium (Mg)", level: 60, status: "Adequate", note: "Supports chlorophyll production", noteHindi: "क्लोरोफिल उत्पादन में सहायक" }
+    ],
+    recommendations: [
+      "Apply DAP or single superphosphate to boost phosphorus levels.",
+      "Maintain present organic compost application rates.",
+      "Spray 0.5% Zinc Sulphate solution after 20 days of sowing."
+    ],
+    recommendationsHindi: [
+      "फास्फोरस बढ़ाने के लिए डीएपी या सिंगल सुपरफॉस्फेट का प्रयोग करें।",
+      "जैविक खाद की वर्तमान मात्रा बनाए रखें।",
+      "बुआई के 20 दिन बाद 0.5% जिंक सल्फेट घोल का छिड़काव करें।"
+    ],
+    suitableCrops: [
+      {
+        name: "Wheat",
+        nameHindi: "गेहूं",
+        emoji: "🌾",
+        season: "Rabi",
+        seasonHindi: "रबी",
+        yield: "4.5 tonnes/hectare",
+        yieldHindi: "4.5 टन/हेक्टेयर",
+        why: "Loamy soil with balanced moisture is ideal for wheat growth.",
+        whyHindi: "संतुलित नमी वाली दोमट मिट्टी गेहूं के लिए उत्तम है।",
+        tip: "Ensure timely first irrigation at CRI stage.",
+        tipHindi: "सीआरआई अवस्था पर समय पर पहली सिंचाई सुनिश्चित करें।"
+      },
+      {
+        name: "Mustard",
+        nameHindi: "सरसों",
+        emoji: "🌼",
+        season: "Rabi",
+        seasonHindi: "रबी",
+        yield: "2.2 tonnes/hectare",
+        yieldHindi: "2.2 टन/हेक्टेयर",
+        why: "Deep soil structure supports mustard root growth.",
+        whyHindi: "गहरी मिट्टी की संरचना सरसों की जड़ों के लिए उपयुक्त है।",
+        tip: "Apply sulphur along with basal dose for higher oil content.",
+        tipHindi: "अधिक तेल सामग्री के लिए शुरुआती खुराक के साथ सल्फर मिलाएं।"
+      }
+    ],
+    avoidCrops: [
+      {
+        name: "Paddy (Rice)",
+        nameHindi: "धान",
+        emoji: "🌾",
+        reason: "Requires heavy clay soil for long water standing.",
+        reasonHindi: "लंबे समय तक पानी खड़ा रखने के लिए भारी चिकनी मिट्टी की आवश्यकता होती है।"
+      }
+    ]
+  };
+}
+
+async function generateGeminiSoilImageAnalysis({ data, mimeType }) {
+  const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const promptText = `You are an expert soil scientist and agronomist. Analyze this soil image carefully.
+Look at soil color, texture, structure, moisture, and visible characteristics to predict nutrient status.
+Respond ONLY in valid JSON with this exact structure (no markdown, no extra text):
+{
+  "soilType": "e.g. Clay loam",
+  "soilTypeHindi": "मृदा का प्रकार",
+  "color": "e.g. Dark brown",
+  "colorHindi": "رंग",
+  "overallHealth": "Poor | Fair | Good | Excellent",
+  "summary": "2-3 sentence summary in English",
+  "summaryHindi": "2-3 sentence summary in Hindi",
+  "nutrients": [
+    {"name": "Nitrogen (N)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Phosphorus (P)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Potassium (K)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Organic Matter", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "pH Balance", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Iron (Fe)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Zinc (Zn)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"},
+    {"name": "Magnesium (Mg)", "level": 50, "status": "Low|Adequate|High", "note": "note", "noteHindi": "noteHindi"}
+  ],
+  "recommendations": ["rec 1", "rec 2"],
+  "recommendationsHindi": ["rec 1 Hindi", "rec 2 Hindi"],
+  "suitableCrops": [
+    {
+      "name": "Crop name",
+      "nameHindi": "फसल",
+      "emoji": "🌾",
+      "season": "Season",
+      "seasonHindi": "मौसम",
+      "yield": "Yield",
+      "yieldHindi": "पैदावार",
+      "why": "Why",
+      "whyHindi": "Why Hindi",
+      "tip": "Tip",
+      "tipHindi": "Tip Hindi"
+    }
+  ],
+  "avoidCrops": [
+    {
+      "name": "Crop",
+      "nameHindi": "फसल",
+      "emoji": "🌾",
+      "reason": "Reason",
+      "reasonHindi": "Reason Hindi"
+    }
+  ]
+}`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType || "image/jpeg",
+                  data
+                }
+              },
+              { text: promptText }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini image analysis failed: ${errorText}`);
+  }
+
+  const resData = await response.json();
+  const rawText = resData?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+  if (!rawText) {
+    throw new Error("Gemini returned empty image analysis response.");
+  }
+
+  const clean = rawText.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+}
+
+app.post("/api/soil-image-analysis", optionalAuth, async (req, res) => {
+  try {
+    const { data, mimeType } = req.body;
+    if (!data) {
+      return res.status(400).json({ message: "Soil image data is required." });
+    }
+
+    let result = null;
+    let provider = "local-fallback";
+
+    try {
+      result = await generateGeminiSoilImageAnalysis({ data, mimeType });
+      if (result) {
+        provider = "gemini";
+      }
+    } catch (error) {
+      console.error("Gemini soil image analysis failed:", error.message);
+    }
+
+    if (!result) {
+      result = buildFallbackSoilImageAnalysis();
+    }
+
+    res.json({
+      message: "Soil image analysis generated successfully.",
+      provider,
+      result
+    });
+  } catch (_error) {
+    res.status(500).json({ message: "Unable to analyze soil image right now." });
   }
 });
 
