@@ -1101,13 +1101,18 @@ app.post("/api/soil-image-analysis", optionalAuth, async (req, res) => {
   }
 });
 
-ensureMarketplaceSchema()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Krishi Vikas MySQL server listening on http://localhost:${PORT}`);
+// Start listening immediately so Render deployment health check succeeds and the process does not exit.
+app.listen(PORT, () => {
+  console.log(`Krishi Vikas server listening on port ${PORT}`);
+
+  // Run schema preparation asynchronously in the background
+  ensureMarketplaceSchema()
+    .then(() => {
+      console.log("Marketplace database schema verified/updated successfully.");
+    })
+    .catch((error) => {
+      console.error("Warning: Unable to prepare marketplace database schema:", formatStartupError(error));
+      console.error("Make sure your database connection settings are correct in environment variables.");
     });
-  })
-  .catch((error) => {
-    console.error("Unable to prepare marketplace schema:", formatStartupError(error));
-    process.exit(1);
-  });
+});
+
